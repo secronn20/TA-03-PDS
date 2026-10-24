@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Monte Carlo | Delivery Risk Analytics</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+        <div class="brand">
+            <div class="brand-logo">MC</div>
+
+            <div class="brand-text">
+                <h1>Delivery Risk Analytics</h1>
+                <p>DATA-DRIVEN MONTE CARLO SIMULATION</p>
+            </div>
+        </div>
+
+        <div class="status">
+            <span class="status-dot"></span>
+            Dataset Loaded
+        </div>
+    </header>
+
+
+    <main class="container">
+
+        <!-- HERO SECTION -->
+        <section class="hero">
+            <div class="hero-content">
+                <span class="section-label">
+                    TUGAS AKHIR 03
+                </span>
+
+                <h2>
+                    Analisis Risiko
+                    <span>Keterlambatan Pengiriman</span>
+                </h2>
+
+                <p>
+                    Simulasikan ribuan skenario pengiriman berdasarkan
+                    distribusi durasi pada dataset untuk memperkirakan
+                    probabilitas keterlambatan.
+                </p>
+            </div>
+
+            <div class="hero-stat">
+                <span>RATA-RATA DURASI DATA</span>
+
+                <h3>
+                    {{ "%.2f"|format(stats.mean) }}
+                    <small>menit</small>
+                </h3>
+
+                <p>
+                    Berdasarkan {{ "{:,}".format(stats.valid_count) }}
+                    data valid
+                </p>
+            </div>
+        </section>
+
+
+        <!-- STATISTIK DATASET -->
+        <section class="stats-grid">
+
+            <article class="stat-card">
+                <div class="stat-top">
+                    <span>Jumlah Data Valid</span>
+                    <div class="stat-icon">01</div>
+                </div>
+
+                <h3>{{ "{:,}".format(stats.valid_count) }}</h3>
+
+                <p>Catatan durasi pengiriman</p>
+            </article>
+
+
+            <article class="stat-card">
+                <div class="stat-top">
+                    <span>Standar Deviasi</span>
+                    <div class="stat-icon">02</div>
+                </div>
+
+                <h3>
+                    {{ "%.2f"|format(stats.std) }}
+                    <small>menit</small>
+                </h3>
+
+                <p>Variasi durasi pengiriman</p>
+            </article>
+
+
+            <article class="stat-card">
+                <div class="stat-top">
+                    <span>Median Durasi</span>
+                    <div class="stat-icon">03</div>
+                </div>
+
+                <h3>
+                    {{ "%.1f"|format(stats.median) }}
+                    <small>menit</small>
+                </h3>
+
+                <p>Nilai tengah durasi</p>
+            </article>
+
+
+            <article class="stat-card">
+                <div class="stat-top">
+                    <span>Rentang Durasi</span>
+                    <div class="stat-icon">04</div>
+                </div>
+
+                <h3>
+                    {{ "%.0f"|format(stats.min) }}–{{ "%.0f"|format(stats.max) }}
+                </h3>
+
+                <p>Minimum hingga maksimum (menit)</p>
+            </article>
+
+        </section>
+
+
+        <!-- FORM DAN METODOLOGI -->
+        <section class="main-grid">
+
+            <div class="panel simulation-panel">
+
+                <div class="panel-heading">
+                    <div>
+                        <span class="section-label">KONFIGURASI</span>
+                        <h3>Jalankan Simulasi</h3>
+                    </div>
+
+                    <span class="step-number">01</span>
+                </div>
+
+
+                <form method="POST" id="simulation-form">
+
+                    <div class="form-group">
+                        <label for="iterations">
+                            Jumlah Iterasi Simulasi
+                        </label>
+
+                        <input
+                            type="number"
+                            id="iterations"
+                            name="iterations"
+                            min="5000"
+                            max="200000"
+                            step="1000"
+                            value="{{ iterations }}"
+                            required
+                        >
+
+                        <small>
+                            Minimal 5.000 dan maksimal 200.000 iterasi.
+                        </small>
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="threshold">
+                            Batas Keterlambatan (menit)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="threshold"
+                            name="threshold"
+                            min="1"
+                            step="1"
+                            value="{{ threshold }}"
+                            required
+                        >
+
+                        <small>
+                            Pengiriman dihitung terlambat jika durasinya
+                            lebih besar dari batas ini.
+                        </small>
+                    </div>
+
+
+                    <div class="method-box">
+                        <div class="method-icon">MC</div>
+
+                        <div>
+                            <h4>Distribusi Empiris</h4>
+
+                            <p>
+                                Setiap skenario mengambil durasi secara
+                                acak dari data pengiriman yang tersedia.
+                            </p>
+                        </div>
+                    </div>
+
+
+                    <button type="submit" id="run-button">
+                        <span>Jalankan Simulasi Monte Carlo</span>
+                        <span class="button-arrow">→</span>
+                    </button>
+
+                </form>
+
+
+                {% if error %}
+                <div class="error-message">
+                    <strong>Terjadi kesalahan</strong>
+                    <p>{{ error }}</p>
+                </div>
+                {% endif %}
+
+            </div>
+
+
+            <div class="panel methodology-panel">
+
+                <div class="panel-heading">
+                    <div>
+                        <span class="section-label">METODOLOGI</span>
+                        <h3>Bagaimana Model Bekerja?</h3>
+                    </div>
+                </div>
+
+
+                <div class="methodology-list">
+
+                    <div class="methodology-item">
+                        <span class="method-number">1</span>
+
+                        <div>
+                            <h4>Pengolahan Data</h4>
+
+                            <p>
+                                Membaca data durasi pengiriman dan
+                                mengeluarkan nilai yang tidak valid.
+                            </p>
+                        </div>
+                    </div>
+
+
+                    <div class="methodology-item">
+                        <span class="method-number">2</span>
+
+                        <div>
+                            <h4>Simulasi Acak</h4>
+
+                            <p>
+                                Mengambil sampel secara acak dengan
+                                pengembalian sesuai jumlah iterasi.
+                            </p>
+                        </div>
+                    </div>
+
+
+                    <div class="methodology-item">
+                        <span class="method-number">3</span>
+
+                        <div>
+                            <h4>Analisis Risiko</h4>
+
+                            <p>
+                                Menghitung jumlah skenario yang
+                                melampaui batas keterlambatan.
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="formula-box">
+                    <span>RUMUS PROBABILITAS</span>
+
+                    <p>
+                        P(Terlambat) =
+                        <strong>
+                            Skenario Terlambat / Total Skenario
+                        </strong>
+                        × 100%
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- HASIL SIMULASI -->
+        {% if result %}
+
+        <section class="results-section" id="results">
+
+            <div class="section-heading">
+                <div>
+                    <span class="section-label">HASIL ANALISIS</span>
+                    <h3>Ringkasan Simulasi Monte Carlo</h3>
+                    <p>
+                        Hasil berdasarkan {{ "{:,}".format(result.iterations) }}
+                        skenario simulasi.
+                    </p>
+                </div>
+
+                <span class="result-badge">SIMULASI SELESAI</span>
+            </div>
+
+
+            <!-- PROBABILITAS UTAMA -->
+            <div class="risk-banner">
+
+                <div class="risk-main">
+                    <span>PROBABILITAS KETERLAMBATAN</span>
+
+                    <h3>
+                        {{ "%.2f"|format(result.late_probability) }}
+                        <small>%</small>
+                    </h3>
+
+                    <p>
+                        Batas keterlambatan:
+                        {{ result.threshold }} menit
+                    </p>
+                </div>
+
+
+                <div class="risk-description">
+                    <span class="description-label">
+                        INTERPRETASI HASIL
+                    </span>
+
+                    <p>
+                        Dari {{ "{:,}".format(result.iterations) }}
+                        skenario yang disimulasikan, sebanyak
+                        {{ "{:,}".format(result.late_count) }}
+                        skenario memiliki durasi pengiriman lebih dari
+                        {{ result.threshold }} menit.
+                    </p>
+
+                    <p>
+                        Estimasi probabilitas keterlambatan adalah
+                        <strong>
+                            {{ "%.2f"|format(result.late_probability) }}%
+                        </strong>.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <!-- KARTU HASIL -->
+            <div class="result-grid">
+
+                <article class="result-card">
+                    <span>Total Iterasi</span>
+
+                    <h3>
+                        {{ "{:,}".format(result.iterations) }}
+                    </h3>
+
+                    <p>Jumlah seluruh skenario</p>
+                </article>
+
+
+                <article class="result-card">
+                    <span>Skenario Terlambat</span>
+
+                    <h3 class="risk-value">
+                        {{ "{:,}".format(result.late_count) }}
+                    </h3>
+
+                    <p>Durasi melebihi batas</p>
+                </article>
+
+
+                <article class="result-card">
+                    <span>Tidak Terlambat</span>
+
+                    <h3 class="safe-value">
+                        {{ "{:,}".format(result.on_time_count) }}
+                    </h3>
+
+                    <p>Durasi tidak melebihi batas</p>
+                </article>
+
+
+                <article class="result-card">
+                    <span>Mean Simulasi</span>
+
+                    <h3>
+                        {{ "%.2f"|format(result.mean) }}
+                        <small>menit</small>
+                    </h3>
+
+                    <p>Rata-rata durasi simulasi</p>
+                </article>
+
+            </div>
+
+
+            <!-- HISTOGRAM -->
+            <div class="panel chart-panel">
+
+                <div class="panel-heading">
+                    <div>
+                        <span class="section-label">VISUALISASI DATA</span>
+                        <h3>Distribusi Hasil Simulasi</h3>
+                    </div>
+
+                    <span class="step-number">02</span>
+                </div>
+
+
+                <div class="chart-container">
+                    <img
+                        src="data:image/png;base64,{{ result.histogram }}"
+                        alt="Histogram hasil simulasi Monte Carlo"
+                    >
+                </div>
+
+
+                <div class="comparison-grid">
+
+                    <div class="comparison-item">
+                        <span>Probabilitas Data Asli</span>
+
+                        <h4>
+                            {{ "%.2f"|format(result.historical_probability) }}%
+                        </h4>
+                    </div>
+
+
+                    <div class="comparison-item">
+                        <span>Probabilitas Simulasi</span>
+
+                        <h4>
+                            {{ "%.2f"|format(result.late_probability) }}%
+                        </h4>
+                    </div>
+
+
+                    <div class="comparison-item">
+                        <span>Selisih Absolut</span>
+
+                        <h4>
+                            {{ "%.2f"|format(result.difference) }}
+                            <small>poin persentase</small>
+                        </h4>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="disclaimer">
+                <strong>Catatan:</strong>
+                Hasil ini merupakan estimasi berdasarkan pola pada dataset.
+                Hasil aktual dapat berbeda apabila karakteristik pengiriman
+                pada masa mendatang berubah.
+            </div>
+
+        </section>
+
+        {% endif %}
+
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <div>
+                <strong>TA-03 · Monte Carlo Simulation</strong>
+
+                <p>
+                    Estimasi Risiko Keterlambatan Pengiriman
+                </p>
+            </div>
+
+            <span>Data-Driven Risk Analysis</span>
+        </footer>
+
+    </main>
+
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+</body>
+</html>
